@@ -12,6 +12,9 @@ library(affy)
 library(tidyverse)
 library(limma)
 library(annotate)
+library(Biobase)
+library(AnnotationDbi)
+library(hgu133plus2.db)
 
 # Make an expression set object with the healthy human subjects
 
@@ -28,19 +31,62 @@ pheno <- read_tsv('BewleyData/E-MTAB-6491.sdrf.txt') %>%
   rename(Source = Source_Name, Infect = infect, Disease = disease) %>%
   filter(Disease == 'normal') %>%
   mutate(Infect =  stringr::str_replace_all(Infect, 'Streptococcus pneumoniae ','')) %>%
-  mutate(Infect = factor(Infect, levels = c('CGSP14','none')))
+  mutate(Infect = factor(Infect, levels = c('CGSP14','none'))) %>%
+  dplyr::select(-Disease)
 
 
-## read those cel files in the Source column
+## read those cel files in the Source column (AffyBatch extends eset class)
+
 data_path <- 'BewleyData/E-MTAB-6491.raw.1'
 
-dat <- pheno %>%
-  dplyr::select(Source) %>%
-  mutate(contents = map(Source, ~ ReadAffy(filenames = file.path(data_path, .)), compress = TRUE)) %>% 
-  unnest()
+## bind the df for each sample together, for each sample the df has Cts and probes and Sample columns, probes have removed the last one or two digits 
+dat <- pheno %>% pull(Source) %>%
+  map(function(x)  probes(ReadAffy(filenames = file.path(data_path, x), compress = TRUE)) %>%
+        as.data.frame %>%
+        rownames_to_column %>%
+        mutate(probes = str_replace(rowname, '\\d+$','')) %>%
+        dplyr::select(-rowname) %>%
+        mutate(Sample = colnames(.)[1]) %>%
+        rename(Cts = names(.)[1]) ) %>%
+  bind_rows
 
-dat[1,2]
+## take the median value of the probes to be the value for that probeset and make an expressionset object from the current data as the raw data to save
+median_cts_dat <- dat %>%
+  group_by(Sample, probes) %>%
+  summarise(medCts = median(Cts)) %>%
+  spread(key = Sample, value = medCts)
 
-test <- ReadAffy(filenames = file.path(data_path, '2MI.CEL'), compress = TRUE)
-head(test@assayData)
-(pData(test))
+
+## reformat the df 
+cts <- median_cts_dat %>%
+  remove_rownames() %>%
+  column_to_rownames(var = 'probes') %>%
+  rename_all(
+    funs(
+      stringr::str_replace_all(., '.CEL$', '') %>%
+      paste0('S',.) 
+    )) 
+
+
+pheno <- pheno %>%
+  mutate(rowname = stringr::str_replace_all(Source, '.CEL$', '') ) %>%
+  mutate(rowname = paste0('S',rowname) ) %>%
+  arrange(Source) %>%
+  column_to_rownames(var = 'rowname')  
+
+## the feature info
+feature_info <- AnnotationDbi::select(hgu133plus2.db, rownames(cts), c("SYMBOL","ENTREZID", "GENENAME")) %>%
+  filter(!duplicated(PROBEID))%>%
+  column_to_rownames(var = 'PROBEID')  
+
+## build the expression set object using the cts matrix the pheno and feature data
+phenoData <- new("AnnotatedDataFrame", data = pheno)
+featureData <- new('AnnotatedDataFrame', data = feature_info)
+
+# build the eset object
+eset <- ExpressionSet(assayData=as.matrix(cts), 
+                         phenoData=phenoData, 
+                         featureData= featureData)
+
+## save the eset
+write_rds(eset, 'processedData/bewley_data_healthy_subjects_eset_median_probes.RDS')
