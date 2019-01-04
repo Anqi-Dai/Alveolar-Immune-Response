@@ -6,17 +6,21 @@ library(tidyverse)
 # load the normalized data
 mdat <- readRDS('processedData/bewley_data_healthy_subjects_rma.RDS')
 
-# aggregation: get the median value of one probe expression across the samples
-median.exprs <- apply(exprs(mdat), 1, median)
+# aggregation: get the 20% quantile of each sample and select the max of that to be the threshold 
+quant20 <- apply(exprs(mdat), 2, function(Sample){
+  quantile(Sample,  probs = 0.2)
+})
 
-# the threshold of being at the 20% quantile of the array of median values
-thre <- quantile(median.exprs, probs = 0.2)
+thre <- max(quant20)
 
-# the names of the probes that pass the filter
-pass <- names(median.exprs[median.exprs > thre])
+# removing those probesets that have the max expression across the samples less than or equal to the thre
 
-# filter out the probes that the median value is at the lowest 20%
-mdat.f <- mdat[featureNames(mdat) %in% pass,]
+max_each_row <- apply(exprs(mdat), 1, max)
+
+to_be_removed <- names(max_each_row[max_each_row <= thre])
+
+# filter out those to_be_removed
+mdat.f <- mdat[!featureNames(mdat) %in% to_be_removed,]
 
 # write out the data
 write_rds(mdat.f, 'processedData/bewley_data_healthy_subjects_rma_FILTERED.RDS')
