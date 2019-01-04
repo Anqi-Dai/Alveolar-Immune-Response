@@ -65,7 +65,8 @@ pca.df %>%
             title = 'PC2 VS PC1 of the normalized data')
 dev.off()
 
-# It appears that the raw data is of high quality.
+# It appears that the every sample in the data is of high quality.
 
 
 
+ 
