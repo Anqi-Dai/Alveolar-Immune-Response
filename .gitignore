@@ -5,3 +5,5 @@ JayData/*
 .Rproj.user
 processedData/*
 .R*
+figs/*
+output/*
