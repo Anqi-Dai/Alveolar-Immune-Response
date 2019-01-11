@@ -1,7 +1,5 @@
 # this script will work on QC of the Bewley *raw* data downloaded from https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-6491/, the AM expression from healthy human subjects --- 3 exposed vs 3 control according to the original manuscript's methods. 
 
-date()
-
 # Installing and loading required packages ========================================================
 #if (!requireNamespace("BiocManager", quietly = TRUE))
 #  install.packages("BiocManager")
@@ -15,6 +13,7 @@ library(annotate)
 library(Biobase)
 library(AnnotationDbi)
 library(hgu133plus2.db)
+
 
 # Make an expression set object with the healthy human subjects
 

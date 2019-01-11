@@ -4,7 +4,7 @@
 library(tidyverse)
 
 # load the normalized data
-mdat <- readRDS('processedData/bewley_data_healthy_subjects_rma.RDS')
+mdat <- readRDS('processedData/bewley_data_healthy_subjects_gcrma.RDS')
 
 # aggregation: get the 20% quantile of each sample and select the max of that to be the threshold 
 quant20 <- apply(exprs(mdat), 2, function(Sample){

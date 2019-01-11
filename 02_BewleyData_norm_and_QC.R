@@ -1,16 +1,26 @@
 # this script will do the normalization and QC of the Bewley data
-
 library(tidyverse)
 library(affyPLM)
 library(ggpubr)
-
-# loading the data (the AffyBatch object)
-bdat <- read_rds('processedData/bewley_data_healthy_subjects.RDS')
+library(gcrma)
+library(Biobase) 
 
 ####### background correction and normalization. ###########
-bdat.d <- rma(bdat)
+data_path <- 'BewleyData/E-MTAB-6491.raw.1'
+fns <- list.files(data_path, pattern = '^[1-6]M|^[1-6]D', full.names = T)
+bdat <- ReadAffy(filenames = fns, verbose=T)
+bdat.d <- gcrma(bdat)
 
-saveRDS(bdat.d, 'processedData/bewley_data_healthy_subjects_rma.RDS')
+# add the pheno info
+pheno <- data.frame(
+  row.names = sampleNames(bdat.d),
+  Infect = factor(c(rep('none',3), rep('CGSP14',3)), levels = c('none','CGSP14')),
+  stringsAsFactors = F
+)
+
+pData(bdat.d) <- pheno
+
+saveRDS(bdat.d, 'processedData/bewley_data_healthy_subjects_gcrma.RDS')
 
 ###### QC using the raw data################################
 
