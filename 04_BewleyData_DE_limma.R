@@ -22,24 +22,17 @@ fit2 <- contrasts.fit(fit, contrast.matrix)
 fit2 <- eBayes(fit2)
 
 limma1 <- topTable(fit = fit2, coef = 1,adjust="BH", number = nrow(fit2)) %>%
-  rownames_to_column %>%
-  #rename(probesetID = rowname) %>%
-  filter(adj.P.Val < 0.05)
-
-# using the intercept and no contrast
-infect_status <- pData(fdat)$Infect
-infect_status <- factor(infect_status, levels= c('none','CGSP14'))
-design <- model.matrix(~infect_status)
-colnames(design) <- c("Intercept","CGSP14-none")
-fit <- lmFit(fdat, design)
-
-fit2 <- eBayes(fit)
-limma2 <- topTable(fit = fit2, coef = 1,adjust="BH", number = nrow(fit2)) %>%
-  filter(adj.P.Val < 0.05)
+  rownames_to_column 
 
 ##########################################################################
 # output the limma result  
 colnames(limma1)[1] <- 'probesetID'
 
 limma1 %>%
-  write_csv('output/differential_expression_statistics_healthy_samples_Bewley.csv')
+  write_csv('output/differential_expression_statistics_healthy_samples_Bewley_ALL.csv')
+
+
+
+limma1  %>%
+  filter(adj.P.Val < 0.05) %>%
+  write_csv('output/differential_expression_statistics_healthy_samples_Bewley_SIG.csv')
