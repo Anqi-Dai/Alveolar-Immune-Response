@@ -30,15 +30,21 @@ my_sig <- read_csv('../output/differential_expression_statistics_healthy_samples
 
 ```{r}
 # correlation between the log2 FC
-cor.test(bew_sig$logFC, 
+cor.test(bew_sig %>%
+           arrange(X1) %>%
+           pull(logFC) , 
          my_sig %>%
            filter(probesetID %in% bew_sig$X1 ) %>%
+           arrange(probesetID) %>%
           pull(logFC), 
          method = 'spearman')
 
-cor.test(bew_sig$AveExpr, 
+cor.test(bew_sig %>%
+           arrange(X1) %>%
+           pull(AveExpr), 
          my_sig %>%
            filter(probesetID %in% bew_sig$X1 ) %>%
+           arrange(probesetID) %>%
           pull(AveExpr), 
          method = 'spearman')
 ```

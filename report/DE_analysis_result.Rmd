@@ -60,6 +60,13 @@ final %>%
              xlab = 'HDE log2 Fold Change',
              ylab = 'NDE log2 Fold Change') +
   ggsave('../figs/HDE VS NDE log2 fold change.jpg')
+
+final %>%
+  ggscatter( x  ='EDE_fold_change', y = 'NDE_fold_change',
+             alpha = 0.2,
+             title = 'EDE VS NDE', 
+             xlab = 'EDE log2 Fold Change',
+             ylab = 'NDE log2 Fold Change')
 ```
 
 ## Table and venn diagram

@@ -6,6 +6,7 @@ library(ggpubr)
 library(AnnotationDbi)
 library(hgu133plus2.db)
 library(biomaRt)
+library(VennDiagram)
 
 ########################################################################
 ## loading data
@@ -28,7 +29,7 @@ human_table <- human %>%
   left_join(human_feature, by = 'probesetID')  %>%
   group_by(Human_Entrez_ID) %>%
   summarise_all(funs(.[which.max(abs(logFC))]))  %>%
-  dplyr::select(Human_Entrez_ID, human_FC = logFC) %>%
+  dplyr::select(Human_Entrez_ID, human_FC = logFC, human_FDR = adj.P.Val, human_t = t) %>%
   mutate(Human_Entrez_ID = as.numeric(Human_Entrez_ID))
 
 ########################################################################
@@ -57,33 +58,3 @@ final <- mice_table %>%
 
 
 write_csv(final, 'output/fold_change_HDE_NDE_EDE.csv')
-
-########################################################################
-# Spearman correlation of homolog-mapped log2 fold changes for HDE vs EDE and HDE vs NDE
-
-cor.test(final$human_FC, final$EDE_fold_change, method = "spearman", exact=FALSE)
-  
-cor.test(final$human_FC, final$NDE_fold_change, method = "spearman", exact=FALSE)
-
-########################################################################
-# scatter plot of log2 fold change from each comparison
-
-final %>%
-  ggscatter( x  ='human_FC', y = 'EDE_fold_change',
-             alpha = 0.2,
-             title = 'HDE VS EDE', 
-             xlab = 'HDE log2 Fold Change',
-             ylab = 'EDE log2 Fold Change') +
-  ggsave('figs/HDE VS EDE log2 fold change.jpg')
-
-
-final %>%
-  ggscatter( x  ='human_FC', y = 'NDE_fold_change',
-             alpha = 0.2,
-             title = 'HDE VS NDE', 
-             xlab = 'HDE log2 Fold Change',
-             ylab = 'NDE log2 Fold Change') +
-  ggsave('figs/HDE VS NDE log2 fold change.jpg')
-
-
-

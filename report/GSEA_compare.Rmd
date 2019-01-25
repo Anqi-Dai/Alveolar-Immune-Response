@@ -1,0 +1,16 @@
+---
+title: "GSEA compare"
+author: "Angel"
+date: "1/25/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Tables and Venn diagrams of significant enriched gene sets from GSEA analyses for HDE, EDE, and NDE for FDR levels 0.1, 0.05, 0.01, with a Venn diagram for each level
+
+
+GSEA statistics for gene sets corresponding to the top and bottom 400 genes in EDE and NDE computed against the HDE log2 fold change dataset as a table and leading edge plots as in Beura et al2 Figure 4b
+

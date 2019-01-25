@@ -7,3 +7,5 @@ processedData/*
 .R*
 figs/*
 output/*
+*.log
+report/*.html
