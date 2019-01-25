@@ -57,4 +57,55 @@ res <- lapply(gsets, function(gs){
 # output the result table
 write_csv(res, 'output/HDE_GSEA_results.csv')
   
+####################################################################################
+# running fgsea for EDE
+
+EDE_ranks <- final %>%
+  arrange(desc(EDE_t))
+
+
+EDE_ranks <- EDE_ranks %>%
+  pull(EDE_t)
+
+names(EDE_ranks) <- final$Human_Entrez_ID
+
+res <- lapply(gsets, function(gs){
+  fgsea(pathways = gs, 
+        stats = EDE_ranks,
+        minSize=15,
+        maxSize=500,
+        nperm=10000)
+}) %>%
+  bind_rows %>%
+  arrange(desc(NES)) %>%
+  mutate(leadingEdge = as.character(leadingEdge))
+
+# output the result table
+write_csv(res, 'output/EDE_GSEA_results.csv')
+
   
+####################################################################################
+# running fgsea for NDE
+
+NDE_ranks <- final %>%
+  arrange(desc(NDE_t))
+
+
+NDE_ranks <- NDE_ranks %>%
+  pull(NDE_t)
+
+names(NDE_ranks) <- final$Human_Entrez_ID
+
+res <- lapply(gsets, function(gs){
+  fgsea(pathways = gs, 
+        stats = NDE_ranks,
+        minSize=15,
+        maxSize=500,
+        nperm=10000)
+}) %>%
+  bind_rows %>%
+  arrange(desc(NES)) %>%
+  mutate(leadingEdge = as.character(leadingEdge))
+
+# output the result table
+write_csv(res, 'output/NDE_GSEA_results.csv')

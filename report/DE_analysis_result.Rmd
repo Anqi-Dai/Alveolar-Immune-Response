@@ -36,7 +36,7 @@ cor.test(final$human_FC, final$NDE_fold_change, method = "spearman", exact=FALSE
 ########################################################################
 
 
-
+colnames(final)
 ```
 
 ## Scatter plot
