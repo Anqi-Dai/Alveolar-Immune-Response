@@ -1,0 +1,68 @@
+---
+title: "check_Bewley_and_I_DE"
+author: "Angel"
+mainfont: Calibri Light 
+output:
+  html_document:
+    df_print: paged
+    toc: true
+    theme: united
+    code_folding: hide
+---
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
+library(VennDiagram)
+library(tidyverse)
+library(ggpubr)
+library(kableExtra)
+```
+
+```{r}
+#load the bewley res for the healthy human DE
+bew_sig <- read_csv('../BewleyData/AM_MI_vs_Spn.csv') %>%
+  filter(adj.P.Val < 0.05) 
+```
+
+```{r}
+# load my sig data
+my_sig <- read_csv('../output/differential_expression_statistics_healthy_samples_Bewley_SIG.csv')
+```
+
+```{r}
+# correlation between the log2 FC
+cor.test(bew_sig$logFC, 
+         my_sig %>%
+           filter(probesetID %in% bew_sig$X1 ) %>%
+          pull(logFC), 
+         method = 'spearman')
+
+cor.test(bew_sig$AveExpr, 
+         my_sig %>%
+           filter(probesetID %in% bew_sig$X1 ) %>%
+          pull(AveExpr), 
+         method = 'spearman')
+```
+
+
+```{r}
+# drawing venn diagram
+diff_list <- list(bewley = bew_sig$X1,
+                  my = my_sig$probesetID)
+fill <- c('#00468B', '#EC0000')
+size  <- rep(0.5, 2)
+venn <- venn.diagram(x = diff_list, 
+                     filename = NULL,
+                     height = 2000,
+                     width = 2000, fill = fill,
+                     cat.default.pos = "text", 
+                     cat.cex = size,
+                     main = "Overlap between Bewley and I sig result");
+png('../figs/Overlap between Bewley and I sig result.png', width = 4, height = 4, units = 'in', res = 300)
+grid.draw(venn)
+dev.off()
+```
+
+```{r out.width=400}
+knitr::include_graphics('../figs/Overlap between Bewley and I sig result.png')
+```
+

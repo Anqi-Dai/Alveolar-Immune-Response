@@ -1,0 +1,159 @@
+---
+title: "use_bewley_data_compare"
+mainfont: Calibri Light 
+author: Angel
+output:
+  html_document:
+    df_print: paged
+    toc: true
+    theme: united
+    code_folding: hide
+---
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
+library(tidyverse)
+library(ggpubr)
+library(AnnotationDbi)
+library(hgu133plus2.db)
+library(biomaRt)
+library(kableExtra)
+library(VennDiagram)
+```
+
+```{r}
+#load the bewley res for the healthy human DE
+human <- read_csv('../BewleyData/AM_MI_vs_Spn.csv')  %>%
+  dplyr::select(probesetID = X1, logFC, adj.P.Val)
+```
+
+```{r}
+# get the human ENTREZID for the human data probesetID
+human_feature <- AnnotationDbi::select(hgu133plus2.db, human$probesetID, c('ENTREZID')) %>%
+  filter(!duplicated(PROBEID)) %>%
+  dplyr::select(probesetID =PROBEID,  Human_Entrez_ID = ENTREZID)
+
+human_table <- human %>%
+  left_join(human_feature, by = 'probesetID')  %>%
+  group_by(Human_Entrez_ID) %>%
+  summarise_all(funs(.[which.max(abs(logFC))]))  %>%
+  dplyr::select(Human_Entrez_ID, human_FC = logFC, human_FDR =adj.P.Val ) %>%
+  mutate(Human_Entrez_ID = as.numeric(Human_Entrez_ID))
+
+########################################################################
+# for Mouse 
+mice <- read_csv('../JayData/Jay_data_core_result.csv')
+
+multiple_mouse_id_genes <- mice %>%
+  filter(!is.na(Human_Entrez_ID)) %>%
+  group_by(Human_Entrez_ID) %>%
+  summarise(mouseID_num = n()) %>%
+  arrange(desc(mouseID_num)) %>%
+  filter(mouseID_num > 1)
+
+# excluding the above
+mice_table <-  mice %>%
+  filter(!is.na(Human_Entrez_ID)) %>%
+  filter(! Human_Entrez_ID %in% multiple_mouse_id_genes$Human_Entrez_ID)
+
+# now the mouse and human entrez id should have a one-to-one relationship
+
+########################################################################
+# join the mouse and human data together
+
+final <- mice_table %>%
+  left_join(human_table , by ='Human_Entrez_ID')%>%
+  filter(!is.na(human_FC)) 
+
+
+```
+
+## Spearman correlation
+
+```{r}
+
+
+# Spearman correlation of homolog-mapped log2 fold changes for HDE vs EDE and HDE vs NDE
+cor.test(final$human_FC, final$EDE_fold_change, method = "spearman", exact=FALSE)
+  
+cor.test(final$human_FC, final$NDE_fold_change, method = "spearman", exact=FALSE)
+########################################################################
+```
+
+## Scatter plot
+
+```{r}
+# scatter plot of log2 fold change from each comparison
+final %>%
+  ggscatter( x  ='human_FC', y = 'EDE_fold_change',
+             alpha = 0.2,
+             title = 'HDE VS EDE', 
+             xlab = 'HDE log2 Fold Change',
+             ylab = 'EDE log2 Fold Change') +
+  ggsave('../figs/HDE VS EDE log2 fold change.jpg')
+final %>%
+  ggscatter( x  ='human_FC', y = 'NDE_fold_change',
+             alpha = 0.2,
+             title = 'HDE VS NDE', 
+             xlab = 'HDE log2 Fold Change',
+             ylab = 'NDE log2 Fold Change') +
+  ggsave('../figs/HDE VS NDE log2 fold change.jpg')
+```
+
+## Table and venn diagram
+
+```{r}
+#  Tables and Venn diagrams of significant DE gene overlap for HDE, EDE, and NDE for FDR levels 0.1, 0.05, and 0.01
+thre <- 0.1
+draw_venn_under_thre <- function(thre) {
+  sig_res <- list(HDE = final %>%
+                  filter(human_FDR < thre) %>%
+                  pull(Symbol),
+                EDE = final %>%
+                  filter(EDE_FDR < thre) %>%
+                  pull(Symbol),
+                NDE = final %>%
+                  filter(NDE_FDR < thre) %>%
+                  pull(Symbol))
+# drawing venn diagram
+diff_list <- sig_res
+fill <- c('#00468B', '#EC0000','#42B440')
+size  <- rep(0.5, 3)
+venn <- venn.diagram(x = diff_list, 
+                     filename = NULL,
+                     height = 2000,
+                     width = 2000, fill = fill,
+                     cat.default.pos = "text", 
+                     cat.cex = size,
+                     main = sprintf("Overlap between HDE, NDE and EDE (FDR < %s)", thre));
+png(sprintf('../figs/Overlap between HDE, NDE and EDE (FDR < %s).png', thre), width = 4, height = 4, units = 'in', res = 300)
+grid.draw(venn)
+dev.off()
+return(list(
+  HN_overlap = length(intersect(sig_res$HDE, sig_res$NDE)),
+  HE_overlap = length(intersect(sig_res$HDE, sig_res$EDE))))
+}
+FDR01 <- draw_venn_under_thre(0.1)
+FDR001 <- draw_venn_under_thre(0.01)
+FDR005 <- draw_venn_under_thre(0.05)
+res_table <- data_frame(
+  Group = names(FDR01),
+  FDR01,
+  FDR005,
+  FDR001
+)
+res_table %>%
+  kable() %>%
+  kable_styling(full_width = F)
+```
+
+```{r out.width=400}
+knitr::include_graphics('../figs/Overlap between HDE, NDE and EDE (FDR < 0.1).png')
+```
+```{r out.width=400}
+knitr::include_graphics('../figs/Overlap between HDE, NDE and EDE (FDR < 0.05).png')
+```
+
+```{r out.width=400}
+knitr::include_graphics('../figs/Overlap between HDE, NDE and EDE (FDR < 0.01).png')
+```
+
