@@ -1,16 +1,170 @@
 ---
 title: "GSEA compare"
-author: "Angel"
-date: "1/25/2019"
-output: html_document
+mainfont: Calibri Light 
+author: Angel
+output:
+  html_document:
+    df_print: paged
+    toc: true
+    theme: united
+    code_folding: hide
 ---
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
+library(tidyverse)
+library(ggpubr)
+library(kableExtra)
+library(fgsea)
+library(VennDiagram)
+library(enrichplot)
 ```
 
-Tables and Venn diagrams of significant enriched gene sets from GSEA analyses for HDE, EDE, and NDE for FDR levels 0.1, 0.05, 0.01, with a Venn diagram for each level
+## Tables and Venn diagrams of significant enriched gene sets from GSEA analyses for HDE, EDE, and NDE for FDR levels 0.1, 0.05, 0.01
+
+```{r}
+# loading the GSEA results for the three comparisons
+HDE <- read_csv('../output/HDE_GSEA_results.csv')
+EDE <- read_csv('../output/EDE_GSEA_results.csv')
+NDE <- read_csv('../output/NDE_GSEA_results.csv')
+```
+
+```{r}
+
+draw_venn_under_thre_GSEA <- function(thre) {
+    sig_list <- lapply(
+      list(HDE = HDE, EDE = EDE, NDE = NDE),
+      function(df){
+        df %>%
+          filter(padj < thre) %>%
+          pull(pathway)
+      }
+    )
+    # drawing venn diagram
+    diff_list <- sig_list
+    fill <- c('#00468B', '#EC0000','#42B440')
+    size  <- rep(0.5, 3)
+    venn <- venn.diagram(x = diff_list, 
+                         filename = NULL,
+                         height = 2000,
+                         width = 2000, fill = fill,
+                         cat.default.pos = "text", 
+                         cat.cex = size,
+                         main = sprintf("Overlap enriched pathway between HDE, NDE and EDE (FDR < %s)", thre));
+    png(sprintf('../figs/Overlap enriched pathway between HDE, NDE and EDE (FDR < %s).png', thre), width = 4, height = 4, units = 'in', res = 300)
+    grid.draw(venn)
+    dev.off()
+    return(list(
+      HN_overlap = length(intersect(sig_list$HDE, sig_list$NDE)),
+      HE_overlap = length(intersect(sig_list$HDE, sig_list$EDE))))
+}
+
+FDR01 <- draw_venn_under_thre_GSEA(0.1)
+FDR005 <- draw_venn_under_thre_GSEA(0.05)
+FDR001 <- draw_venn_under_thre_GSEA(0.01)
+
+# make a table
+res_table <- data_frame(
+  Group = names(FDR01),
+  FDR01,
+  FDR005,
+  FDR001
+)
+res_table %>%
+  kable() %>%
+  kable_styling(full_width = F)
+```
+```{r out.width=400}
+knitr::include_graphics('../figs/Overlap enriched pathway between HDE, NDE and EDE (FDR < 0.1).png')
+```
+```{r out.width=400}
+knitr::include_graphics('../figs/Overlap enriched pathway between HDE, NDE and EDE (FDR < 0.05).png')
+```
+
+```{r out.width=400}
+knitr::include_graphics('../figs/Overlap enriched pathway between HDE, NDE and EDE (FDR < 0.01).png')
+```
+
+## Leading edge plots for the top and bottom 400 genes in EDE and NDE 
+
+```{r}
+# make gset of top and bottom 400 for NDE
+final <- read_csv('../output/fold_change_HDE_NDE_EDE.csv')
+n <- 400
+
+NDE_de <- final %>%
+  filter(NDE_FDR < 0.05) 
+
+NDE_up <- NDE_de %>%
+  top_n(n, wt = NDE_t) %>%
+  pull(Human_Entrez_ID) %>%
+  paste0(collapse = '\t')
+
+NDE_down <- NDE_de %>%
+  top_n(-n, wt = NDE_t) %>%
+  pull(Human_Entrez_ID)%>%
+  paste0(collapse = '\t')
+
+```
+
+```{r}
+# same for EDE
+EDE_de <- final %>%
+  filter(EDE_FDR < 0.05) 
+
+EDE_up <- EDE_de %>%
+  top_n(n, wt = EDE_t) %>%
+  pull(Human_Entrez_ID)%>%
+  paste0(collapse = '\t')
+
+EDE_down <- EDE_de %>%
+  top_n(-n, wt = EDE_t) %>%
+  pull(Human_Entrez_ID)%>%
+  paste0(collapse = '\t')
+```
 
 
-GSEA statistics for gene sets corresponding to the top and bottom 400 genes in EDE and NDE computed against the HDE log2 fold change dataset as a table and leading edge plots as in Beura et al2 Figure 4b
+```{r}
+# make a gmt file containing those 4 gsets
+out <- tribble(
+  ~x, ~y,  ~z,
+  'NDE_up','NDE up',NDE_up,
+  'NDE_down','NDE down',NDE_down,
+  'EDE_up','EDE up',EDE_up,
+  'EDE_down','EDE down',EDE_down
+)
+
+write_tsv(out, '../processedData/top_and_bottom_400_NDE_EDE_gsets.tsv', col_names = F , quote_escape = 'backslash')
+```
+
+```{bash}
+awk '{gsub(/\"/,"")};1' ../processedData/top_and_bottom_400_NDE_EDE_gsets.tsv > ../processedData/top_and_bottom_400_NDE_EDE_gsets.gmt
+```
+
+
+```{r}
+mice_gsets <- gmtPathways('../processedData/top_and_bottom_400_NDE_EDE_gsets.gmt')
+
+# the human entrez IDs sorted by desc logFC
+human_gsea <- final %>%
+  arrange(desc(human_t))
+
+h_rank <- human_gsea  %>%
+  pull(human_t)
+
+names(h_rank) <- human_gsea$Human_Entrez_ID
+```
+
+```{r}
+lapply(seq(1, length(mice_gsets)), 
+       function(i){
+         plotEnrichment(mice_gsets[[i]], h_rank) +
+           labs(title=names(mice_gsets)[i]) +
+           ylim(-0.25, 0.55)
+         }
+       )
+
+
+```
+
+
 

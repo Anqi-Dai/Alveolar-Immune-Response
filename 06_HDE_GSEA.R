@@ -27,16 +27,8 @@ names(t_ranks) <- final$Human_Entrez_ID
 gmtPath <- '../../../MsigDB_geneset/entrez_6.2'
   
 gsets <- list(
-  h.all = gmtPathways(file.path(gmtPath, 'h.all.v6.2.entrez.gmt')),
-  c1.all = gmtPathways(file.path(gmtPath, 'c1.all.v6.2.entrez.gmt')),
-  c2.all = gmtPathways(file.path(gmtPath, 'c2.all.v6.2.entrez.gmt')),
-  c2.cp.biocarta = gmtPathways(file.path(gmtPath, 'c2.cp.biocarta.v6.2.entrez.gmt')),
-  c2.cp.kegg = gmtPathways(file.path(gmtPath, 'c2.cp.kegg.v6.2.entrez.gmt')),
-  c2.cp.reactome = gmtPathways(file.path(gmtPath, 'c2.cp.reactome.v6.2.entrez.gmt')),
-  c3.all = gmtPathways(file.path(gmtPath, 'c3.all.v6.2.entrez.gmt')),
-  c4.all = gmtPathways(file.path(gmtPath, 'c4.all.v6.2.entrez.gmt')),
+  c2.cp = gmtPathways(file.path(gmtPath, 'c2.cp.v6.2.entrez.gmt')),
   c5.all = gmtPathways(file.path(gmtPath, 'c5.all.v6.2.entrez.gmt')),
-  c6.all = gmtPathways(file.path(gmtPath, 'c6.all.v6.2.entrez.gmt')),
   c7.all = gmtPathways(file.path(gmtPath, 'c7.all.v6.2.entrez.gmt'))
 )
 
