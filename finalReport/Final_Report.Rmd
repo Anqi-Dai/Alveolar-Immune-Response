@@ -1,0 +1,115 @@
+---
+title: "Final Report: The Conditioned Murine Alveolar Immune Response"
+author: "Anqi Dai"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+library(tidyverse)
+library(knitr)
+library(ggpubr)
+```
+
+The Mizgerd lab recently performed gene expression profiling with microarrays to understand and characterize the role of AMs in a mouse model of pulmonary infection. We sought to test hypothesis that experienced mice with previous *S. pneumoniae* exposure may have an AM response that better models the human response than naive mice, which exhibit significant differences from the human immune response.
+
+This analysis compared the gene expression results from the human AM study presented in the [Bewley paper](https://www.atsjournals.org/doi/full/10.1164/rccm.201705-0903OC?url_ver=Z39.88-2003&rfr_id=ori%3Arid%3Acrossref.org&rfr_dat=cr_pub%3Dpubmed) with the transcriptional responses observed in naive exposed vs control and experience exposed vs control mouse experiments. 
+
+## Bewley data processing
+
+Only the expression from healthy human subjects were analyzed, where 3 exposed vs 3 control AM expression datasets underwent QC and differential expression analysis as described in the supplemental material of the original manuscript. 
+
+### QC and preprocessing
+
+#### QC of the raw data
+
+For quality control of the raw data, the median relative log expression (RLE) of each sample was computed. Results are shown in the below barplot. The fact that all samples have a median RLE close to zero suggests high quality.
+
+```{r out.width=400}
+knitr::include_graphics('../figs/median_rle.jpg')
+```
+
+The median normalized unscaled standard error (NUSE) for each sample was calculated as well. The samples with NUSE > 1 may be poor quality. The resulted barplot shows the quality is high.
+
+```{r out.width=400}
+knitr::include_graphics('../figs/median_NUSE.jpg')
+```
+
+#### Preprocessing
+
+* Raw data was analyzed to perform background correction using GC Robust Multi-array Average, and quantile normalization. 
+* Probes whose expression was in the 20th lowest centile were removed. 
+
+### Differential expression
+
+* Differentially expressed genes were identified using Limma to calculate Moderated t tests and considered significant if adjusted p value < 0.05 following Benjamini-Hochberg correction. 
+
+[DE statistics for all the probesets remained after filtering](../output/differential_expression_statistics_healthy_samples_Bewley_ALL.csv)
+
+[DE statistics for significant results only](../output/differential_expression_statistics_healthy_samples_Bewley_SIG.csv.csv)
+
+Since we also obtained the original author's data on the differential expression statistics. Below is a comparison of the their results and ours.
+
+```{r out.width=400}
+knitr::include_graphics('../figs/Overlap between Bewley and I sig result.png')
+```
+
+The above Venn diagram indicates that all of the significant genes from authors' analysis are included in our results. 
+
+And to inspect whether the expression are concordant between us, the Spearman correlaton is computed on both the log2 fold change and the average expression of the significant genes.
+
+```{r}
+#load the bewley res for the healthy human DE
+bew_sig <- read_csv('../BewleyData/AM_MI_vs_Spn.csv') %>%
+  filter(adj.P.Val < 0.05) 
+
+# load my sig data
+my_sig <- read_csv('../output/differential_expression_statistics_healthy_samples_Bewley_SIG.csv')
+
+# correlation between the log2 FC
+bew_logFC <- bew_sig %>%
+           arrange(X1) %>%
+           pull(logFC)
+
+my_logFC <- my_sig %>%
+           filter(probesetID %in% bew_sig$X1 ) %>%
+           arrange(probesetID) %>%
+          pull(logFC)
+
+cor.test(bew_logFC ,my_logFC , method = 'spearman')
+
+
+# ave expre
+bew_aveExpr <- bew_sig %>%
+           arrange(X1) %>%
+           pull(AveExpr)
+my_aveExpr <- my_sig %>%
+           filter(probesetID %in% bew_sig$X1 ) %>%
+           arrange(probesetID) %>%
+          pull(AveExpr)
+cor.test(bew_aveExpr, my_aveExpr ,  method = 'spearman')
+```
+
+The sample estimates rho are both 1 for the two comparisons, proving that not only are the genes identified as Differentially Expressed Genes (DEG) are agreeable between the authors' results and ours, but also the statistics are comparable and in the same trend.
+
+### GSEA
+
+
+
+
+
+
+## DEGs comparisons
+
+
+
+## GSEA comparisons
+

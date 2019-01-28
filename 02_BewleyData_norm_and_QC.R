@@ -35,11 +35,13 @@ median.rle.df <- data.frame(
   med_RLE = median.rle
 ) 
 
-pdf('figs/median_rle.pdf')
+
 median.rle.df %>%
-  ggbarplot(x = 'Sample', y = 'med_RLE')
-dev.off()
- 
+  ggbarplot(x = 'Sample', y = 'med_RLE', title = 'Median RLE per sample',
+            fill = '#00468B', color = '#00468B') +
+  ggsave('figs/median_rle.jpg', width = 6, height = 6, dpi = 300)
+
+
 # compute the normalized unscaled standard error (NUSE) of each gene and plot the median values per sample as a histogram
 median.nuse <- NUSE(plm.fit,main="NUSE",type="stats")[1,]
 
@@ -48,35 +50,11 @@ median.nuse.df <- data.frame(
   med_NUSE = median.nuse
 ) 
 
-pdf('figs/median_NUSE.pdf')
+
 median.nuse.df %>%
-  ggbarplot(x = 'Sample', y = 'med_NUSE')
-dev.off()
-
-
-# the PCA to see how the data separates (using the normalized data.)
-
-# scaling and centering the expression matrix
-m <- t(scale(t(exprs(bdat.d))))
-
-# performing PCA
-data.pca <- prcomp(m, center=FALSE)
-
-pca.df <- data.pca$rotation
-
-# draw the pca plot
-pdf('figs/PCA_pc1VSpc2.pdf')
-pca.df %>%
-  as.data.frame %>%
-  rownames_to_column %>%
-  left_join(pData(bdat.d) %>%
-              rownames_to_column, by = 'rowname') %>%
-  ggscatter(x = 'PC1', y = 'PC2', color = 'Infect',
-            title = 'PC2 VS PC1 of the normalized data')
-dev.off()
+  ggbarplot(x = 'Sample', y = 'med_NUSE', title = 'Median NUSE per sample',fill = '#00468B', color = '#00468B' ) +
+  ggsave('figs/median_NUSE.jpg', width = 6, height = 6, dpi = 300)
+  
 
 # It appears that the every sample in the data is of high quality.
 
-
-
- 
