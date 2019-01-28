@@ -27,9 +27,9 @@ This analysis compared the gene expression results from the human AM study prese
 
 Only the expression from healthy human subjects were analyzed, where 3 exposed vs 3 control AM expression datasets underwent QC and differential expression analysis as described in the supplemental material of the original manuscript. 
 
-### QC and preprocessing
+### 1. QC and preprocessing
 
-#### QC of the raw data
+#### 1.1. QC of the raw data
 
 For quality control of the raw data, the median relative log expression (RLE) of each sample was computed. Results are shown in the below barplot. The fact that all samples have a median RLE close to zero suggests high quality.
 
@@ -43,18 +43,18 @@ The median normalized unscaled standard error (NUSE) for each sample was calcula
 knitr::include_graphics('../figs/median_NUSE.jpg')
 ```
 
-#### Preprocessing
+#### 1.2. Preprocessing
 
 * Raw data was analyzed to perform background correction using GC Robust Multi-array Average, and quantile normalization. 
 * Probes whose expression was in the 20th lowest centile were removed. 
 
-### Differential expression
+### 2. Differential expression
 
 * Differentially expressed genes were identified using Limma to calculate Moderated t tests and considered significant if adjusted p value < 0.05 following Benjamini-Hochberg correction. 
 
-[DE statistics for all the probesets remained after filtering](../output/differential_expression_statistics_healthy_samples_Bewley_ALL.csv)
+[TABLE: DE statistics for all the probesets remained after filtering](../output/differential_expression_statistics_healthy_samples_Bewley_ALL.csv)
 
-[DE statistics for significant results only](../output/differential_expression_statistics_healthy_samples_Bewley_SIG.csv.csv)
+[TABLE: DE statistics for significant results only](../output/differential_expression_statistics_healthy_samples_Bewley_SIG.csv)
 
 Since we also obtained the original author's data on the differential expression statistics. Below is a comparison of the their results and ours.
 
@@ -64,52 +64,93 @@ knitr::include_graphics('../figs/Overlap between Bewley and I sig result.png')
 
 The above Venn diagram indicates that all of the significant genes from authors' analysis are included in our results. 
 
-And to inspect whether the expression are concordant between us, the Spearman correlaton is computed on both the log2 fold change and the average expression of the significant genes.
+And to inspect whether the expression are concordant between us, the Spearman correlaton is computed on both the log2 fold change and the average expression of the significant genes. The results are listed below:
 
-```{r}
-#load the bewley res for the healthy human DE
-bew_sig <- read_csv('../BewleyData/AM_MI_vs_Spn.csv') %>%
-  filter(adj.P.Val < 0.05) 
+Comparison | Correlation
+---------- | -----------
+Bewley_log2FC VS My_log2FC | 1
+Bewley_aveExpr VS My_aveExpr | 1
 
-# load my sig data
-my_sig <- read_csv('../output/differential_expression_statistics_healthy_samples_Bewley_SIG.csv')
-
-# correlation between the log2 FC
-bew_logFC <- bew_sig %>%
-           arrange(X1) %>%
-           pull(logFC)
-
-my_logFC <- my_sig %>%
-           filter(probesetID %in% bew_sig$X1 ) %>%
-           arrange(probesetID) %>%
-          pull(logFC)
-
-cor.test(bew_logFC ,my_logFC , method = 'spearman')
-
-
-# ave expre
-bew_aveExpr <- bew_sig %>%
-           arrange(X1) %>%
-           pull(AveExpr)
-my_aveExpr <- my_sig %>%
-           filter(probesetID %in% bew_sig$X1 ) %>%
-           arrange(probesetID) %>%
-          pull(AveExpr)
-cor.test(bew_aveExpr, my_aveExpr ,  method = 'spearman')
-```
-
-The sample estimates rho are both 1 for the two comparisons, proving that not only are the genes identified as Differentially Expressed Genes (DEG) are agreeable between the authors' results and ours, but also the statistics are comparable and in the same trend.
-
-### GSEA
+The sample estimates rho are both 1 for the two comparisons, proving that not only are the genes identified as Differentially Expressed Genes (DEG) are agreeable between the authors' results and ours, but also the statistics are comparable.
 
 
 
+### 3. GSEA
 
+* Only keep the genes that are homologous in human and in mouse.
+    + Identify the Entrez gene ID for the probesets in the human data DE result.
+    + For multiple probeset that correspond to the same Entrez ID, only keep the one that has the maximum absolute fold change.
+    + For the mouse results provided by BU Microarray Core, since it already includes the homologous human gene information if any, filter out the mouse probes that do not have a homologous human gene.
+    + For the situation where multiple mouse probes correspond to the same human gene, simply remove those.
+    + Join the mouse and human table together, and a table with mouse and human data having one-to-one relationship is produced.
+
+
+* Use the t statistics from the differential expression results to do a Gene Set Enrichment Analysis (GSEA) employing the fgsea Bioconductor package with the MsigDB gene set database version 6.2, looking into only the c2.cp (canonical pathways), c5.all (GO gene sets) and c7.all (immunological signatures) enrichment.
+
+[TABLE: All pathway enrichment statistics for Bewley human data](../output/HDE_GSEA_results.csv)
 
 
 ## DEGs comparisons
 
+Three DE analyses were used for the following comparisons:
+
+* HDE: Healthy human exposed AMs vs control AMs
+* EDE: Experienced mouse exposed AMs vs control AMs
+* NDE: Naive Mouse exposed AMs vs control AMs
+
+[TABLE: Homolog-mapped statistics including log2 fold change,FDR and t statistics for the HDE, NDE and EDE](../output/homolog_mapped_statistics_HDE_NDE_EDE.csv)
+
+### 1. Spearman correlation
+
+Spearman correlation of homolog-mapped log2 fold changes for HDE vs EDE and HDE vs NDE:
+
+Comparison | Correlation
+---------- | -----------
+HDE VS EDE | -0.000209333
+HDE VS NDE | -0.05137032
+
+The number suggests there is no correlation between either of the two.
+
+### 2. Scatter plot
+
+Scatter plot of HDE VS EDE log2 fold change:
+
+```{r out.width=400}
+knitr::include_graphics('../figs/HDE VS EDE log2 fold change.jpg')
+```
+
+Scatter plot of HDE VS NDE log2 fold change:
+
+```{r out.width=400}
+knitr::include_graphics('../figs/HDE VS NDE log2 fold change.jpg')
+```
+
+Still, both of the plots seem to have points randomly located, suggesting no correlation found.
+
+### 3. Tables and Venn diagram
+
+Tables and Venn diagrams of significant DE gene overlap for HDE, EDE, and NDE for FDR levels 0.1, 0.05, and 0.01.
+
+Group | FDR01 | FDR005 | FDR001
+----- | ----- | ------ | ------
+HDE NDE overlap | 1442 | 840 | 184
+HDE EDE overlap | 839 | 439 | 90
+
+```{r out.width=400}
+knitr::include_graphics('../figs/Overlap between HDE, NDE and EDE (FDR < 0.1).png')
+```
+
+```{r out.width=400}
+knitr::include_graphics('../figs/Overlap between HDE, NDE and EDE (FDR < 0.05).png')
+```
+
+```{r out.width=400}
+knitr::include_graphics('../figs/Overlap between HDE, NDE and EDE (FDR < 0.01).png')
+```
+
 
 
 ## GSEA comparisons
+
+
 

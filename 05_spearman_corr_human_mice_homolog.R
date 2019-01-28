@@ -57,4 +57,4 @@ final <- mice_table %>%
   filter(!is.na(human_FC)) 
 
 
-write_csv(final, 'output/fold_change_HDE_NDE_EDE.csv')
+write_csv(final, 'output/homolog_mapped_statistics_HDE_NDE_EDE.csv')
