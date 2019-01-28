@@ -38,7 +38,7 @@ median.rle.df <- data.frame(
 
 median.rle.df %>%
   ggbarplot(x = 'Sample', y = 'med_RLE', title = 'Median RLE per sample',
-            fill = '#00468B', color = '#00468B') +
+            fill = '#00468B', color = '#00468B', ylab = 'Median RLE ') +
   ggsave('figs/median_rle.jpg', width = 6, height = 6, dpi = 300)
 
 

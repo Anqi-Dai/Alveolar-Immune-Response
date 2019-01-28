@@ -8,4 +8,4 @@ processedData/*
 figs/*
 output/*
 *.log
-report/*.html
+*/*.html
