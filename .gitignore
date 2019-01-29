@@ -9,3 +9,4 @@ figs/*
 output/*
 *.log
 */*.html
+send*

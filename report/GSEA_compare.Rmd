@@ -49,7 +49,7 @@ draw_venn_under_thre_GSEA <- function(thre) {
                          width = 2000, fill = fill,
                          cat.default.pos = "text", 
                          cat.cex = size,
-                         main = sprintf("Overlap enriched pathway between HDE, NDE and EDE (FDR < %s)", thre));
+                         main = sprintf("Overlap enriched pathway (FDR < %s)", thre));
     png(sprintf('../figs/Overlap enriched pathway between HDE, NDE and EDE (FDR < %s).png', thre), width = 4, height = 4, units = 'in', res = 300)
     grid.draw(venn)
     dev.off()
@@ -154,12 +154,16 @@ h_rank <- human_gsea  %>%
 names(h_rank) <- human_gsea$Human_Entrez_ID
 ```
 
+
+
+
 ```{r}
 lapply(seq(1, length(mice_gsets)), 
        function(i){
          plotEnrichment(mice_gsets[[i]], h_rank) +
            labs(title=names(mice_gsets)[i]) +
-           ylim(-0.25, 0.55)
+           ylim(-0.2, 0.45) +
+           ggsave(paste0('../figs/',names(mice_gsets)[i],'_enrichment.jpg' ))
          }
        )
 
