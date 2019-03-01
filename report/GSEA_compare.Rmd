@@ -88,8 +88,8 @@ knitr::include_graphics('../figs/Overlap enriched pathway between HDE, NDE and E
 
 ```{r}
 # make gset of top and bottom 400 for NDE
-final <- read_csv('../output/fold_change_HDE_NDE_EDE.csv')
-n <- 400
+final <- read_csv('../output/homolog_mapped_statistics_HDE_NDE_EDE.csv')
+n <- 300
 
 NDE_de <- final %>%
   filter(NDE_FDR < 0.05) 
@@ -163,12 +163,20 @@ lapply(seq(1, length(mice_gsets)),
          plotEnrichment(mice_gsets[[i]], h_rank) +
            labs(title=names(mice_gsets)[i]) +
            ylim(-0.2, 0.45) +
-           ggsave(paste0('../figs/',names(mice_gsets)[i],'_enrichment.jpg' ))
+           ggsave(paste0('../figs/N300/',names(mice_gsets)[i],'_enrichment.jpg' ))
          }
        )
 
 
 ```
 
+```{r}
+# calculate the actual NES and the significance
+fgseaRes <- fgsea(mice_gsets, h_rank, nperm=1000, maxSize=500)
+
+fgseaRes %>%
+  dplyr::select(-leadingEdge) %>%
+  write_csv('../figs/N300/fgseaRes.csv')
+```
 
 
